@@ -1,0 +1,35 @@
+{
+  "name": "safestore",
+	"type": "module",
+  "version": "0.0.1",
+  "description": "Type-safe wrapper for localStorage / sessionStorage",
+  "main": "dist/index.js",
+  "scripts": {
+    "test": "npm run build && uvu dist/tests .js",
+    "format": "prettier --write --loglevel silent src tests",
+    "verify": "npm run format && npm test",
+    "build": "tsc"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/thoughtspile/safestore.git"
+  },
+  "keywords": [
+    "localstorage",
+    "typescript",
+    "sessionstorage",
+    "zod",
+    "typesafe"
+  ],
+  "author": "Vladimir Klepov v.klepov@gmail.com",
+  "license": "MIT",
+  "bugs": {
+    "url": "https://github.com/thoughtspile/safestore/issues"
+  },
+  "homepage": "https://github.com/thoughtspile/safestore#readme",
+  "devDependencies": {
+    "prettier": "^2.8.4",
+    "typescript": "^4.9.5",
+    "uvu": "^0.5.6"
+  }
+}
