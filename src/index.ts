@@ -30,7 +30,12 @@ export interface SafeStore<T, Keys extends string> {
   setItem: (key: Keys, value: T) => void;
 }
 
-export function safeStore<T, Meta = never>(options: SafeStoreOptions<T>): SafeStore<T, [Meta] extends [SafeStoreKeyOptions<infer Keys>] ? Keys : string> {
+export function safeStore<T, Meta = never>(
+  options: SafeStoreOptions<T>
+): SafeStore<
+  T,
+  [Meta] extends [SafeStoreKeyOptions<infer Keys>] ? Keys : string
+> {
   const parse =
     options.json === false
       ? options.parse
@@ -41,10 +46,7 @@ export function safeStore<T, Meta = never>(options: SafeStoreOptions<T>): SafeSt
       : (value: T) => JSON.stringify(options.prepare(value));
   function getItemUnsafe(key: string) {
     const raw = options.storage.getItem(key);
-    if (raw == null) {
-      throw safeStoreError("Missing value");
-    }
-    return parse(raw);
+    return raw == null ? fail() : parse(raw);
   }
   return {
     getItem: (key) => {
@@ -70,6 +72,6 @@ export function safeStore<T, Meta = never>(options: SafeStoreOptions<T>): SafeSt
   };
 }
 
-export function safeStoreError(message = "SafeStore failed") {
-  return new TypeError(message);
+export function fail(message?: string): never {
+  throw new TypeError(message || "BanditStore parse failed");
 }

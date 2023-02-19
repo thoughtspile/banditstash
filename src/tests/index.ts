@@ -1,6 +1,6 @@
 import { suite, test } from "uvu";
 import { is } from "uvu/assert";
-import { safeStore, safeStoreError, type SafeStoreOptions } from "../index.js";
+import { safeStore, fail, type SafeStoreOptions } from "../index.js";
 
 const storageData = new Map<string, string>();
 const storage: SafeStoreOptions<unknown>["storage"] = {
@@ -12,12 +12,7 @@ function safeStringStore(options: Partial<SafeStoreOptions<string>> = {}) {
   return safeStore<string>({
     storage,
     defaultValue: () => "__fallback__",
-    parse: (raw) => {
-      if (typeof raw !== "string") {
-        throw safeStoreError();
-      }
-      return raw;
-    },
+    parse: (raw) => (typeof raw === "string" ? raw : fail()),
     prepare: (raw) => raw,
     ...options,
   });
@@ -26,12 +21,7 @@ function safeStringStore(options: Partial<SafeStoreOptions<string>> = {}) {
 const testGetItem = suite("getItem");
 testGetItem("parses input", () => {
   const store = safeStringStore({
-    parse: (raw) => {
-      if (typeof raw !== "string") {
-        throw safeStoreError();
-      }
-      return `parsed:${raw}`;
-    },
+    parse: (raw) => (typeof raw == "string" ? `parsed:${raw}` : fail()),
   });
   storageData.set("__key__", JSON.stringify("__value__"));
   is(store.getItem("__key__"), "parsed:__value__");
