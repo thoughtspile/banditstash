@@ -5,8 +5,8 @@
   "description": "Type-safe wrapper for localStorage / sessionStorage",
   "main": "dist/index.js",
   "scripts": {
-    "test": "npm run build && uvu dist/tests .js",
-    "format": "prettier --write --loglevel silent src tests",
+    "test": "npm run build && uvu dist/tests -i 'typetest|.*\\.ts$'",
+    "format": "prettier --write --loglevel silent src",
     "verify": "npm run format && npm test",
     "build": "tsc"
   },

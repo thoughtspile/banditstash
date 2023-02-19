@@ -1,26 +1,119 @@
-import { test } from "uvu";
+import { suite, test } from "uvu";
 import { is } from "uvu/assert";
-import { safeStore, type SafeStoreOptions } from "../index.js";
+import { safeStore, safeStoreError, type SafeStoreOptions } from "../index.js";
 
-function setupStorage<T>(options: Omit<SafeStoreOptions<T>, "storage">) {
-  const storageData = new Map<string, string>();
-  const mockStorage: SafeStoreOptions<unknown>["storage"] = {
-    getItem: (key) => storageData.get(key) ?? null,
-    setItem: (key, value) => storageData.set(key, value),
-    removeItem: (key) => storageData.delete(key),
-  };
-  const store = safeStore<T>({ ...options, storage: mockStorage });
-  return { store, storageData };
+const storageData = new Map<string, string>();
+const storage: SafeStoreOptions<unknown>["storage"] = {
+  getItem: (key) => storageData.get(key) ?? null,
+  setItem: (key, value) => storageData.set(key, value),
+};
+test.before(() => storageData.clear());
+function safeStringStore(options: Partial<SafeStoreOptions<string>> = {}) {
+  return safeStore<string>({
+    storage,
+    defaultValue: () => "__fallback__",
+    parse: (raw) => {
+      if (typeof raw !== "string") {
+        throw safeStoreError();
+      }
+      return raw;
+    },
+    prepare: (raw) => raw,
+    ...options,
+  });
 }
 
-test("parses input", () => {
-  const { store, storageData } = setupStorage({
-    defaultValue: () => 0,
-    parse: (raw) => (typeof raw === "number" ? raw : 0),
+const testGetItem = suite("getItem");
+testGetItem("parses input", () => {
+  const store = safeStringStore({
+    parse: (raw) => {
+      if (typeof raw !== "string") {
+        throw safeStoreError();
+      }
+      return `parsed:${raw}`;
+    },
+  });
+  storageData.set("__key__", JSON.stringify("__value__"));
+  is(store.getItem("__key__"), "parsed:__value__");
+});
+testGetItem("fallback on missing storage", () => {
+  const store = safeStringStore({ storage: undefined as any });
+  is(store.getItem("key"), "__fallback__");
+});
+testGetItem("fallback on missing value", () => {
+  const store = safeStringStore();
+  is(store.getItem("__miss__"), "__fallback__");
+});
+testGetItem("fallback on invalid JSON", () => {
+  const store = safeStringStore();
+  storageData.set("__key__", "__non_json__");
+  is(store.getItem("__key__"), "__fallback__");
+});
+testGetItem("fallback on validation throw", () => {
+  const store = safeStringStore();
+  storageData.set("__key__", JSON.stringify({}));
+  is(store.getItem("__key__"), "__fallback__");
+});
+testGetItem.run();
+
+const testHasItem = suite("hasItem");
+testHasItem("true on good value", () => {
+  const store = safeStringStore();
+  storageData.set("__key__", JSON.stringify("__value__"));
+  is(store.hasItem("__key__"), true);
+});
+testHasItem("false on missing storage", () => {
+  const store = safeStringStore({ storage: undefined as any });
+  is(store.hasItem("key"), false);
+});
+testHasItem("false on missing value", () => {
+  const store = safeStringStore();
+  is(store.hasItem("__miss__"), false);
+});
+testHasItem("false on invalid JSON", () => {
+  const store = safeStringStore();
+  storageData.set("__key__", "__non_json__");
+  is(store.hasItem("__key__"), false);
+});
+testHasItem("false on validation throw", () => {
+  const store = safeStringStore();
+  storageData.set("__key__", JSON.stringify({}));
+  is(store.hasItem("__key__"), false);
+});
+testHasItem.run();
+
+const testSetItem = suite("setItem");
+testSetItem("serializes input", () => {
+  const store = safeStringStore({
+    prepare: (raw) => `prepared:${raw}`,
+  });
+  store.setItem("__key__", "__value__");
+  is(storageData.get("__key__"), JSON.stringify("prepared:__value__"));
+});
+testSetItem("ignores missing storage", () => {
+  const store = safeStringStore({ storage: undefined as any });
+  store.setItem("__key__", "9");
+});
+testSetItem("ignores setItem throw", () => {
+  const store = safeStringStore({
+    storage: {
+      ...storage,
+      setItem: () => {
+        throw new Error("full");
+      },
+    },
+  });
+  store.setItem("__key__", "9");
+});
+testSetItem("ignores non-serializable data", () => {
+  const store = safeStore<any>({
+    storage,
+    defaultValue: () => {},
+    parse: (raw) => raw,
     prepare: (raw) => raw,
   });
-  storageData.set("__key__", "9");
-  is(store.getItem("__key__"), 9);
+  const circular = {};
+  circular["key"] = circular;
+  store.setItem("__key__", circular);
 });
-
-test.run();
+testSetItem.run();
