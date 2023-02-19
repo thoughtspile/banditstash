@@ -7,12 +7,20 @@ type Json =
   | Json[]
   | { [key: string]: Json };
 
-export interface SafeStoreOptions<T> {
-  storage: Pick<Storage, "getItem" | "setItem">;
-  defaultValue: () => T;
+interface SafeStoreOptionsJson<T> {
+  json?: true;
   parse: (rawValue: Json) => T;
   prepare: (rawValue: T) => Json;
 }
+interface SafeStoreOptionsRaw<T> {
+  json: false;
+  parse: (rawValue: string) => T;
+  prepare: (rawValue: T) => string;
+}
+export type SafeStoreOptions<T> = {
+  storage: Pick<Storage, "getItem" | "setItem">;
+  defaultValue: () => T;
+} & (SafeStoreOptionsJson<T> | SafeStoreOptionsRaw<T>);
 
 export interface SafeStore<T> {
   getItem: (key: string) => T;
@@ -21,12 +29,20 @@ export interface SafeStore<T> {
 }
 
 export function safeStore<T>(options: SafeStoreOptions<T>): SafeStore<T> {
+  const parse =
+    options.json === false
+      ? options.parse
+      : (raw: string) => options.parse(JSON.parse(raw));
+  const prepare =
+    options.json === false
+      ? options.prepare
+      : (value: T) => JSON.stringify(options.prepare(value));
   function getItemUnsafe(key: string) {
     const raw = options.storage.getItem(key);
     if (raw == null) {
       throw safeStoreError("Missing value");
     }
-    return options.parse(JSON.parse(raw));
+    return parse(raw);
   }
   return {
     getItem: (key) => {
@@ -38,7 +54,7 @@ export function safeStore<T>(options: SafeStoreOptions<T>): SafeStore<T> {
     },
     setItem: (key, value) => {
       try {
-        options.storage.setItem(key, JSON.stringify(options.prepare(value)));
+        options.storage.setItem(key, prepare(value));
       } catch (err) {}
     },
     hasItem: (key) => {

@@ -29,13 +29,29 @@ safeStore<Set<string>>({
 });
 
 // accepts custom storage
-const map = new Map();
 safeStore<number>({
   storage: {
-    getItem: (k) => map.get(k),
-    setItem: (k, v) => map.set(k, v),
+    getItem: (_key: string) => "",
+    setItem: (_key: string, _value: string) => {},
   },
   defaultValue: () => 0,
   parse: (raw) => (typeof raw === "number" ? raw : 0),
+  prepare: (raw) => raw,
+});
+
+/*** custom serializer ***/
+// happy path
+safeStore<number>({
+  storage: localStorage,
+  json: false,
+  prepare: (raw) => String(raw),
+  parse: (raw: string) => Number(raw),
+  defaultValue: () => 0,
+});
+
+// prepare must return string
+// @ts-expect-error
+safeStore<number>({
+  json: false,
   prepare: (raw) => raw,
 });

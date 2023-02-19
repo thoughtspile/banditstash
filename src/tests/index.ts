@@ -108,7 +108,7 @@ testSetItem("ignores setItem throw", () => {
 testSetItem("ignores non-serializable data", () => {
   const store = safeStore<any>({
     storage,
-    defaultValue: () => {},
+    defaultValue: () => ({}),
     parse: (raw) => raw,
     prepare: (raw) => raw,
   });
@@ -117,3 +117,28 @@ testSetItem("ignores non-serializable data", () => {
   store.setItem("__key__", circular);
 });
 testSetItem.run();
+
+const testCustomSerializer = suite("custom serializer");
+testCustomSerializer("stores result as-is", () => {
+  const store = safeStore<string>({
+    json: false,
+    storage,
+    defaultValue: () => "",
+    parse: (raw) => `parsed:${raw}`,
+    prepare: (num) => `prepared:${num}`,
+  });
+  store.setItem("__key__", "__data__");
+  is(storageData.get("__key__"), "prepared:__data__");
+});
+testCustomSerializer("gets result as-is", () => {
+  const store = safeStore<string>({
+    json: false,
+    storage,
+    defaultValue: () => "",
+    parse: (raw) => `parsed:${raw}`,
+    prepare: (num) => `prepared:${num}`,
+  });
+  storageData.set("__key__", "__data__");
+  is(store.getItem("__key__"), "parsed:__data__");
+});
+testCustomSerializer.run();
