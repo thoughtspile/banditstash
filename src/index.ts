@@ -7,7 +7,7 @@ type Json =
   | Json[]
   | { [key: string]: Json };
 
-type SafeStoreKeyOptions<Keys extends string> = { keys: Keys };
+type SafeStoreKeyOptions<Keys extends string = string> = { keys?: Keys };
 
 interface SafeStoreOptionsJson<T> {
   json?: true;
@@ -30,7 +30,7 @@ export interface SafeStore<T, Keys extends string> {
   setItem: (key: Keys, value: T) => void;
 }
 
-export function safeStore<T, Meta = never>(
+export function safeStore<T, Meta extends SafeStoreKeyOptions = never>(
   options: SafeStoreOptions<T>
 ): SafeStore<
   T,
