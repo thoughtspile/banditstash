@@ -7,6 +7,8 @@ type Json =
   | Json[]
   | { [key: string]: Json };
 
+type SafeStoreKeyOptions<Keys extends string> = { keys: Keys };
+
 interface SafeStoreOptionsJson<T> {
   json?: true;
   parse: (rawValue: Json) => T;
@@ -22,13 +24,13 @@ export type SafeStoreOptions<T> = {
   defaultValue: () => T;
 } & (SafeStoreOptionsJson<T> | SafeStoreOptionsRaw<T>);
 
-export interface SafeStore<T> {
-  getItem: (key: string) => T;
-  hasItem: (key: string) => boolean;
-  setItem: (key: string, value: T) => void;
+export interface SafeStore<T, Keys extends string> {
+  getItem: (key: Keys) => T;
+  hasItem: (key: Keys) => boolean;
+  setItem: (key: Keys, value: T) => void;
 }
 
-export function safeStore<T>(options: SafeStoreOptions<T>): SafeStore<T> {
+export function safeStore<T, Meta = never>(options: SafeStoreOptions<T>): SafeStore<T, [Meta] extends [SafeStoreKeyOptions<infer Keys>] ? Keys : string> {
   const parse =
     options.json === false
       ? options.parse
