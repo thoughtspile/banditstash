@@ -7,7 +7,9 @@ const storage: SafeStoreOptions<unknown, unknown>["storage"] = {
   getItem: (key) => storageData.get(key) ?? null,
   setItem: (key, value) => storageData.set(key, value),
 };
-function safeStringStore(options: Partial<SafeStoreOptions<string, Json>> = {}) {
+function safeStringStore(
+  options: Partial<SafeStoreOptions<string, Json>> = {}
+) {
   return safeStore.json<string>({
     storage,
     fallback: () => "__fallback__",
@@ -17,11 +19,11 @@ function safeStringStore(options: Partial<SafeStoreOptions<string, Json>> = {}) 
   });
 }
 
-
 const testGetItem = suite("getItem");
 testGetItem("parses input", () => {
   const store = safeStringStore({
-    parse: (raw) => (typeof raw == "string" ? `parsed:${raw}` : safeStore.fail()),
+    parse: (raw) =>
+      typeof raw == "string" ? `parsed:${raw}` : safeStore.fail(),
   });
   storageData.set("__key__", JSON.stringify("__value__"));
   is(store.getItem("__key__"), "parsed:__value__");
@@ -46,12 +48,12 @@ testGetItem("fallback on validation throw", () => {
 });
 testGetItem.run();
 
-
-const testGetItemUnsafe = suite('getItem with no fallback');
+const testGetItemUnsafe = suite("getItem with no fallback");
 testGetItemUnsafe("parses input", () => {
   const store = safeStringStore({
-    parse: (raw) => (typeof raw == "string" ? `parsed:${raw}` : safeStore.fail()),
-    fallback: false
+    parse: (raw) =>
+      typeof raw == "string" ? `parsed:${raw}` : safeStore.fail(),
+    fallback: false,
   });
   storageData.set("__key__", JSON.stringify("__value__"));
   is(store.getItem("__key__"), "parsed:__value__");
@@ -75,7 +77,6 @@ testGetItemUnsafe("throws on validation throw", () => {
   throws(() => store.getItem("__key__"));
 });
 testGetItemUnsafe.run();
-
 
 const testSetItem = suite("setItem");
 testSetItem("serializes input", () => {
@@ -113,8 +114,7 @@ testSetItem("ignores non-serializable data", () => {
 });
 testSetItem.run();
 
-
-const testUnsafeSetItem = suite('setItem unsafe');
+const testUnsafeSetItem = suite("setItem unsafe");
 testUnsafeSetItem("serializes input", () => {
   const store = safeStringStore({
     safeSet: false,
@@ -153,7 +153,6 @@ testUnsafeSetItem("ignores non-serializable data", () => {
 });
 testUnsafeSetItem.run();
 
-
 const testCustomSerializer = suite("custom serializer");
 testCustomSerializer("stores result as-is", () => {
   const store = safeStore<string>({
@@ -168,7 +167,7 @@ testCustomSerializer("stores result as-is", () => {
 testCustomSerializer("gets result as-is", () => {
   const store = safeStore<string>({
     storage,
-    fallback: () => "",
+    fallback: false,
     parse: (raw) => `parsed:${raw}`,
     prepare: (num) => `prepared:${num}`,
   });
@@ -176,3 +175,43 @@ testCustomSerializer("gets result as-is", () => {
   is(store.getItem("__key__"), "parsed:__data__");
 });
 testCustomSerializer.run();
+
+const testScope = suite("scope");
+const scopedStore = () =>
+  safeStore<string>({
+    scope: "prefix",
+    storage,
+    fallback: false,
+    parse: (str) => str,
+    prepare: (str) => str,
+  });
+testScope("adds prefix on getItem", () => {
+  const store = scopedStore();
+  storageData.set("prefix:data", "__value__");
+  is(store.getItem("data"), "__value__");
+});
+testScope("adds prefix on setItem", () => {
+  const store = scopedStore();
+  store.setItem("new", "__value__");
+  is(storageData.get("prefix:new"), "__value__");
+});
+testScope("generates sub-prefix", () => {
+  const store = scopedStore().scope("second");
+  storageData.set("prefix:second:data", "__value__");
+  is(store.getItem("data"), "__value__");
+  store.setItem("deep", "__value__");
+  is(storageData.get("prefix:second:deep"), "__value__");
+});
+testScope("enables up scope via method", () => {
+  const store = safeStore<string>({
+    storage,
+    fallback: false,
+    parse: (str) => str,
+    prepare: (str) => str,
+  }).scope("root");
+  storageData.set("root:data", "__value__");
+  is(store.getItem("data"), "__value__");
+  store.setItem("deep", "__value__");
+  is(storageData.get("root:deep"), "__value__");
+});
+testScope.run();

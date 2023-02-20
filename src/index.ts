@@ -1,9 +1,10 @@
 export function safeStore<T>(options: SafeStoreOptions<T, string>) {
-  const { storage, parse, prepare, fallback, safeSet = true } = options;
+  const { storage, parse, prepare, fallback, safeSet = true, scope } = options;
+  const getKey = (key: string) => (scope ? scope + ":" + key : key);
   const store: SafeStore<T> = {
     getItem: (key) => {
       try {
-        const raw = storage.getItem(key);
+        const raw = storage.getItem(getKey(key));
         return raw == null ? safeStore.fail() : parse(raw);
       } catch (err) {
         if (fallback) return fallback();
@@ -12,12 +13,16 @@ export function safeStore<T>(options: SafeStoreOptions<T, string>) {
     },
     setItem: (key, value) => {
       try {
-        storage.setItem(key, prepare(value));
+        storage.setItem(getKey(key), prepare(value));
       } catch (err) {
         if (!safeSet) throw err;
       }
     },
-    limitKeys: () => store,
+    singleton: (key) => ({
+      getItem: store.getItem.bind(null, key),
+      setItem: store.setItem.bind(null, key),
+    }),
+    scope: (prefix) => safeStore({ ...options, scope: getKey(prefix) }),
   };
   return store;
 }
@@ -25,8 +30,8 @@ export function safeStore<T>(options: SafeStoreOptions<T, string>) {
 safeStore.json = function jsonStore<T>(options: SafeStoreOptions<T, Json>) {
   return safeStore<T>({
     ...options,
-    parse: data => options.parse(JSON.parse(data)),
-    prepare: data => JSON.stringify(options.prepare(data)),
+    parse: (data) => options.parse(JSON.parse(data)),
+    prepare: (data) => JSON.stringify(options.prepare(data)),
   });
 };
 
@@ -44,10 +49,17 @@ export interface SafeStoreOptions<T, StorageType> {
   parse: (rawValue: StorageType) => T;
   prepare: (rawValue: T) => StorageType;
   safeSet?: boolean;
+  scope?: string;
 }
 
-export interface SafeStore<T, Keys extends string = string> {
-  getItem: (key: Keys) => T;
-  setItem: (key: Keys, value: T) => void;
-  limitKeys: <NewKeys extends Keys>() => SafeStore<T, NewKeys>;
+export interface SafeStore<T> {
+  getItem: (key: string) => T;
+  setItem: (key: string, value: T) => void;
+  singleton: <Key extends string>(key: Key) => SingletonStore<T>;
+  scope: (prefix: string) => SafeStore<T>;
+}
+
+export interface SingletonStore<T> {
+  getItem: () => T;
+  setItem: (value: T) => void;
 }

@@ -46,8 +46,8 @@ safeStore.json<number>({
 });
 safeStore<string>({
   fallback: false,
-  parse: raw => raw,
-  prepare: raw => raw,
+  parse: (raw) => raw,
+  prepare: (raw) => raw,
   storage: localStorage,
 });
 
@@ -67,31 +67,23 @@ safeStore<number>({
 });
 
 /*** Strict keys ***/
-const k1 = safeStore.json<number>({
-  fallback: () => 0,
-  parse: (raw) => (typeof raw === "number" ? raw : 0),
+safeStore<string>({
+  scope: "app",
+  fallback: false,
+  parse: (raw) => raw,
   prepare: (raw) => raw,
   storage: localStorage,
-}).limitKeys<'k1'>();
-// allows matching keys
-k1.getItem("k1");
-k1.setItem("k1", 0);
-// @ts-expect-error
-k1.getItem("k2");
-// @ts-expect-error
-k1.hasItem("k2");
-// @ts-expect-error
-k1.setItem("k2", 0);
+});
 
 // chaining
 safeStore<number>({
   storage: safeStore<string>({
     storage: localStorage,
     fallback: false,
-    parse: raw => raw,
-    prepare: raw => raw,
+    parse: (raw) => raw,
+    prepare: (raw) => raw,
   }),
   fallback: false,
-  parse: raw => Number(raw),
-  prepare: num => String(num)
+  parse: (raw) => Number(raw),
+  prepare: (num) => String(num),
 });
