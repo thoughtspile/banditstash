@@ -77,32 +77,6 @@ testGetItemUnsafe("throws on validation throw", () => {
 testGetItemUnsafe.run();
 
 
-const testHasItem = suite("hasItem");
-testHasItem("true on good value", () => {
-  const store = safeStringStore();
-  storageData.set("__key__", JSON.stringify("__value__"));
-  is(store.hasItem("__key__"), true);
-});
-testHasItem("false on missing storage", () => {
-  const store = safeStringStore({ storage: undefined as any });
-  is(store.hasItem("key"), false);
-});
-testHasItem("false on missing value", () => {
-  const store = safeStringStore();
-  is(store.hasItem("__miss__"), false);
-});
-testHasItem("false on invalid JSON", () => {
-  const store = safeStringStore();
-  storageData.set("__key__", "__non_json__");
-  is(store.hasItem("__key__"), false);
-});
-testHasItem("false on validation throw", () => {
-  const store = safeStringStore();
-  storageData.set("__key__", JSON.stringify({}));
-  is(store.hasItem("__key__"), false);
-});
-testHasItem.run();
-
 const testSetItem = suite("setItem");
 testSetItem("serializes input", () => {
   const store = safeStringStore({

@@ -9,8 +9,6 @@ const numberStore = safeStore.json<number>({
 });
 // getItem is typed
 const v: number = numberStore.getItem("");
-// hasItem returns boolean
-const has: boolean = numberStore.hasItem("");
 // setItem is typed
 numberStore.setItem("", 9);
 // @ts-expect-error
@@ -77,7 +75,6 @@ const k1 = safeStore.json<number, { keys: "k1" }>({
 });
 // allows matching keys
 k1.getItem("k1");
-k1.hasItem("k1");
 k1.setItem("k1", 0);
 // @ts-expect-error
 k1.getItem("k2");

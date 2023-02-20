@@ -61,8 +61,6 @@ const stringStore = banditStash.json<string | null>({
 const value = stringStore.getItem('key') ?? 'default';
 ```
 
-Finally, `hasItem` returns `true` whenever `getItem` would return a non-fallback value — storage exists and contains item with the given key, _and_ it's valid JSON, and validation passes.
-
 ## Key validation
 
 ## Custom serializers
@@ -153,7 +151,5 @@ Any other validation library — io-ts, yup, json-schems — is similarly easy t
 ### `banditStash.fail(message: string)`
 
 ### `#Store.getItem(key)`
-
-### `#Store.hasItem(key)`
 
 ### `#Store.setItem(key, value)`
