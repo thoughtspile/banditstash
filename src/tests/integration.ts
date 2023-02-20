@@ -1,5 +1,5 @@
 import { test } from "uvu";
-import { is, equal } from "uvu/assert";
+import { is, equal, throws } from "uvu/assert";
 import zod from 'zod';
 import arson from 'arson';
 import { safeStore } from "../index.js";
@@ -13,13 +13,12 @@ const storage: Parameters<typeof safeStore>[0]["storage"] = {
 let now = 0;
 const ttlStore = (ttl: number) => safeStore<string>({
   parse: (raw) => {
-    if (typeof raw !== 'string') safeStore.fail();
-    const parsed = raw.match(/^([0-9]+):(.*)/);
-    if (now > Number(parsed?.[1]) || !parsed?.[2]) safeStore.fail();
-    return parsed?.[2];
+    const [_, ttlString, data] = raw.match(/^([0-9]+):(.*)/) || [];
+    if (now > Number(ttlString) || !data) safeStore.fail();
+    return data;
   },
   prepare: data => `${now + ttl}:${data}`,
-  defaultValue: () => '__fallback__',
+  fallback: false,
   storage
 });
 
@@ -28,14 +27,14 @@ test('ttl', () => {
   store.setItem('__key__', '__da:ta__');
   is(store.getItem('__key__'), '__da:ta__');
   now = 101;
-  is(store.getItem('__key__'), '__fallback__');
+  throws(() => store.getItem('__key__'));
 });
 
 test('ttl proxy', () => {
   now = 0;
   const objectTtl = safeStore.json<{ name: string }>({
     storage: ttlStore(100),
-    defaultValue: () => ({ name: '__fallback__' }),
+    fallback: () => ({ name: '__fallback__' }),
     parse: raw => {
       return raw && typeof raw === 'object' && ('name' in raw) && typeof raw['name'] === 'string' ? { name: raw.name } : safeStore.fail();
     },
@@ -54,7 +53,7 @@ test('zod', () => {
   }).strict();
   const userStore = safeStore.json<zod.infer<typeof schema>>({
     storage,
-    defaultValue: () => ({ name: '__fallback__', age: 20 }),
+    fallback: () => ({ name: '__fallback__', age: 20 }),
     parse: raw => schema.parse(raw),
     prepare: raw => raw
   });
@@ -67,7 +66,7 @@ test('zod', () => {
 test('arson', () => {
   const registered = safeStore<Date>({
     storage,
-    defaultValue: () => new Date(),
+    fallback: () => new Date(),
     parse: arson.parse,
     prepare: arson.stringify
   });

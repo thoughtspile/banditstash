@@ -2,7 +2,7 @@ import { safeStore } from "../index.js";
 
 // happy path
 const numberStore = safeStore.json<number>({
-  defaultValue: () => 0,
+  fallback: () => 0,
   parse: (raw) => (typeof raw === "number" ? raw : 0),
   prepare: (raw) => raw,
   storage: localStorage,
@@ -34,9 +34,23 @@ safeStore.json<number>({
     getItem: (_key: string) => "",
     setItem: (_key: string, _value: string) => {},
   },
-  defaultValue: () => 0,
+  fallback: () => 0,
   parse: (raw) => (typeof raw === "number" ? raw : 0),
   prepare: (raw) => raw,
+});
+
+/*** accepts false fallback ***/
+safeStore.json<number>({
+  fallback: false,
+  parse: (raw) => (typeof raw === "number" ? raw : 0),
+  prepare: (raw) => raw,
+  storage: localStorage,
+});
+safeStore<string>({
+  fallback: false,
+  parse: raw => raw,
+  prepare: raw => raw,
+  storage: localStorage,
 });
 
 /*** custom serializer ***/
@@ -45,7 +59,7 @@ safeStore<number>({
   storage: localStorage,
   prepare: (raw) => String(raw),
   parse: (raw: string) => Number(raw),
-  defaultValue: () => 0,
+  fallback: () => 0,
 });
 
 // prepare must return string
@@ -56,7 +70,7 @@ safeStore<number>({
 
 /*** Strict keys ***/
 const k1 = safeStore.json<number, { keys: "k1" }>({
-  defaultValue: () => 0,
+  fallback: () => 0,
   parse: (raw) => (typeof raw === "number" ? raw : 0),
   prepare: (raw) => raw,
   storage: localStorage,

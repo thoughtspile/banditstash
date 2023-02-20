@@ -1,5 +1,5 @@
 import { suite, test } from "uvu";
-import { is } from "uvu/assert";
+import { is, throws } from "uvu/assert";
 import { safeStore, type Json, type SafeStoreOptions } from "../index.js";
 
 const storageData = new Map<string, string>();
@@ -7,16 +7,16 @@ const storage: SafeStoreOptions<unknown, unknown>["storage"] = {
   getItem: (key) => storageData.get(key) ?? null,
   setItem: (key, value) => storageData.set(key, value),
 };
-test.before(() => storageData.clear());
 function safeStringStore(options: Partial<SafeStoreOptions<string, Json>> = {}) {
   return safeStore.json<string>({
     storage,
-    defaultValue: () => "__fallback__",
+    fallback: () => "__fallback__",
     parse: (raw) => (typeof raw === "string" ? raw : safeStore.fail()),
     prepare: (raw) => raw,
     ...options,
   });
 }
+
 
 const testGetItem = suite("getItem");
 testGetItem("parses input", () => {
@@ -45,6 +45,37 @@ testGetItem("fallback on validation throw", () => {
   is(store.getItem("__key__"), "__fallback__");
 });
 testGetItem.run();
+
+
+const testGetItemUnsafe = suite('getItem with no fallback');
+testGetItemUnsafe("parses input", () => {
+  const store = safeStringStore({
+    parse: (raw) => (typeof raw == "string" ? `parsed:${raw}` : safeStore.fail()),
+    fallback: false
+  });
+  storageData.set("__key__", JSON.stringify("__value__"));
+  is(store.getItem("__key__"), "parsed:__value__");
+});
+testGetItemUnsafe("throws on missing storage", () => {
+  const store = safeStringStore({ storage: undefined as any, fallback: false });
+  throws(() => store.getItem("key"));
+});
+testGetItemUnsafe("throws on missing value", () => {
+  const store = safeStringStore({ fallback: false });
+  throws(() => store.getItem("__miss__"));
+});
+testGetItemUnsafe("throws on invalid JSON", () => {
+  const store = safeStringStore({ fallback: false });
+  storageData.set("__key__", "__non_json__");
+  throws(() => store.getItem("__key__"));
+});
+testGetItemUnsafe("throws on validation throw", () => {
+  const store = safeStringStore({ fallback: false });
+  storageData.set("__key__", JSON.stringify({}));
+  throws(() => store.getItem("__key__"));
+});
+testGetItemUnsafe.run();
+
 
 const testHasItem = suite("hasItem");
 testHasItem("true on good value", () => {
@@ -98,7 +129,7 @@ testSetItem("ignores setItem throw", () => {
 testSetItem("ignores non-serializable data", () => {
   const store = safeStore<any>({
     storage,
-    defaultValue: () => ({}),
+    fallback: () => ({}),
     parse: (raw) => raw,
     prepare: (raw) => raw,
   });
@@ -112,7 +143,7 @@ const testCustomSerializer = suite("custom serializer");
 testCustomSerializer("stores result as-is", () => {
   const store = safeStore<string>({
     storage,
-    defaultValue: () => "",
+    fallback: () => "",
     parse: (raw) => `parsed:${raw}`,
     prepare: (num) => `prepared:${num}`,
   });
@@ -122,7 +153,7 @@ testCustomSerializer("stores result as-is", () => {
 testCustomSerializer("gets result as-is", () => {
   const store = safeStore<string>({
     storage,
-    defaultValue: () => "",
+    fallback: () => "",
     parse: (raw) => `parsed:${raw}`,
     prepare: (num) => `prepared:${num}`,
   });
