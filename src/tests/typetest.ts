@@ -67,12 +67,12 @@ safeStore<number>({
 });
 
 /*** Strict keys ***/
-const k1 = safeStore.json<number, { keys: "k1" }>({
+const k1 = safeStore.json<number>({
   fallback: () => 0,
   parse: (raw) => (typeof raw === "number" ? raw : 0),
   prepare: (raw) => raw,
   storage: localStorage,
-});
+}).limitKeys<'k1'>();
 // allows matching keys
 k1.getItem("k1");
 k1.setItem("k1", 0);

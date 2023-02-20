@@ -1,8 +1,6 @@
-export function safeStore<T, Meta extends SafeStoreMeta = never>(
-  options: SafeStoreOptions<T, string>
-): SafeStore<T, GetKeys<Meta>> {
+export function safeStore<T>(options: SafeStoreOptions<T, string>) {
   const { storage, parse, prepare, fallback, safeSet = true } = options;
-  return {
+  const store: SafeStore<T> = {
     getItem: (key) => {
       try {
         const raw = storage.getItem(key);
@@ -19,13 +17,13 @@ export function safeStore<T, Meta extends SafeStoreMeta = never>(
         if (!safeSet) throw err;
       }
     },
+    limitKeys: () => store,
   };
+  return store;
 }
 
-safeStore.json = function jsonStore<T, Meta extends SafeStoreMeta = never>(
-  options: SafeStoreOptions<T, Json>
-) {
-  return safeStore<T, Meta>({
+safeStore.json = function jsonStore<T>(options: SafeStoreOptions<T, Json>) {
+  return safeStore<T>({
     ...options,
     parse: data => options.parse(JSON.parse(data)),
     prepare: data => JSON.stringify(options.prepare(data)),
@@ -40,9 +38,6 @@ safeStore.fail = function fail(message?: string): never {
 type Primitive = string | number | boolean | null | undefined;
 export type Json = Primitive | Json[] | { [key: string]: Json };
 
-type SafeStoreMeta<Keys extends string = string> = { keys: Keys };
-type GetKeys<Meta> = [Meta] extends [SafeStoreMeta<infer Keys>] ? Keys : string;
-
 export interface SafeStoreOptions<T, StorageType> {
   storage: Pick<Storage, "getItem" | "setItem">;
   fallback: false | (() => T);
@@ -51,7 +46,8 @@ export interface SafeStoreOptions<T, StorageType> {
   safeSet?: boolean;
 }
 
-export interface SafeStore<T, Keys extends string> {
+export interface SafeStore<T, Keys extends string = string> {
   getItem: (key: Keys) => T;
   setItem: (key: Keys, value: T) => void;
+  limitKeys: <NewKeys extends Keys>() => SafeStore<T, NewKeys>;
 }
