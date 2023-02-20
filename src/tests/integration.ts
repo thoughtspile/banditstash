@@ -2,21 +2,20 @@ import { test } from "uvu";
 import { is, equal } from "uvu/assert";
 import zod from 'zod';
 import arson from 'arson';
-import { safeStore, fail, type SafeStoreOptions } from "../index.js";
+import { safeStore } from "../index.js";
 
 const storageData = new Map<string, string>();
-const storage: SafeStoreOptions<unknown>["storage"] = {
+const storage: Parameters<typeof safeStore>[0]["storage"] = {
   getItem: (key) => storageData.get(key) ?? null,
   setItem: (key, value) => storageData.set(key, value),
 };
 
 let now = 0;
 const ttlStore = (ttl: number) => safeStore<string>({
-  json: false,
   parse: (raw) => {
-    if (typeof raw !== 'string') fail();
+    if (typeof raw !== 'string') safeStore.fail();
     const parsed = raw.match(/^([0-9]+):(.*)/);
-    if (now > Number(parsed?.[1]) || !parsed?.[2]) fail();
+    if (now > Number(parsed?.[1]) || !parsed?.[2]) safeStore.fail();
     return parsed?.[2];
   },
   prepare: data => `${now + ttl}:${data}`,
@@ -34,11 +33,11 @@ test('ttl', () => {
 
 test('ttl proxy', () => {
   now = 0;
-  const objectTtl = safeStore<{ name: string }>({
+  const objectTtl = safeStore.json<{ name: string }>({
     storage: ttlStore(100),
     defaultValue: () => ({ name: '__fallback__' }),
     parse: raw => {
-      return raw && typeof raw === 'object' && ('name' in raw) && typeof raw['name'] === 'string' ? { name: raw.name } : fail();
+      return raw && typeof raw === 'object' && ('name' in raw) && typeof raw['name'] === 'string' ? { name: raw.name } : safeStore.fail();
     },
     prepare: raw => raw
   });
@@ -53,7 +52,7 @@ test('zod', () => {
     name: zod.string(),
     age: zod.number().positive(),
   }).strict();
-  const userStore = safeStore<zod.infer<typeof schema>>({
+  const userStore = safeStore.json<zod.infer<typeof schema>>({
     storage,
     defaultValue: () => ({ name: '__fallback__', age: 20 }),
     parse: raw => schema.parse(raw),
@@ -67,7 +66,6 @@ test('zod', () => {
 
 test('arson', () => {
   const registered = safeStore<Date>({
-    json: false,
     storage,
     defaultValue: () => new Date(),
     parse: arson.parse,

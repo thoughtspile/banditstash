@@ -1,7 +1,7 @@
 import { safeStore } from "../index.js";
 
 // happy path
-const numberStore = safeStore<number>({
+const numberStore = safeStore.json<number>({
   defaultValue: () => 0,
   parse: (raw) => (typeof raw === "number" ? raw : 0),
   prepare: (raw) => raw,
@@ -29,7 +29,7 @@ safeStore<Set<string>>({
 });
 
 // accepts custom storage
-safeStore<number>({
+safeStore.json<number>({
   storage: {
     getItem: (_key: string) => "",
     setItem: (_key: string, _value: string) => {},
@@ -43,21 +43,19 @@ safeStore<number>({
 // happy path
 safeStore<number>({
   storage: localStorage,
-  json: false,
   prepare: (raw) => String(raw),
   parse: (raw: string) => Number(raw),
   defaultValue: () => 0,
 });
 
 // prepare must return string
-// @ts-expect-error
 safeStore<number>({
-  json: false,
+  // @ts-expect-error
   prepare: (raw) => raw,
 });
 
 /*** Strict keys ***/
-const k1 = safeStore<number, { keys: "k1" }>({
+const k1 = safeStore.json<number, { keys: "k1" }>({
   defaultValue: () => 0,
   parse: (raw) => (typeof raw === "number" ? raw : 0),
   prepare: (raw) => raw,

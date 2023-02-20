@@ -1,18 +1,18 @@
 import { suite, test } from "uvu";
 import { is } from "uvu/assert";
-import { safeStore, fail, type SafeStoreOptions } from "../index.js";
+import { safeStore, type Json, type SafeStoreOptions } from "../index.js";
 
 const storageData = new Map<string, string>();
-const storage: SafeStoreOptions<unknown>["storage"] = {
+const storage: SafeStoreOptions<unknown, unknown>["storage"] = {
   getItem: (key) => storageData.get(key) ?? null,
   setItem: (key, value) => storageData.set(key, value),
 };
 test.before(() => storageData.clear());
-function safeStringStore(options: Partial<SafeStoreOptions<string>> = {}) {
-  return safeStore<string>({
+function safeStringStore(options: Partial<SafeStoreOptions<string, Json>> = {}) {
+  return safeStore.json<string>({
     storage,
     defaultValue: () => "__fallback__",
-    parse: (raw) => (typeof raw === "string" ? raw : fail()),
+    parse: (raw) => (typeof raw === "string" ? raw : safeStore.fail()),
     prepare: (raw) => raw,
     ...options,
   });
@@ -21,7 +21,7 @@ function safeStringStore(options: Partial<SafeStoreOptions<string>> = {}) {
 const testGetItem = suite("getItem");
 testGetItem("parses input", () => {
   const store = safeStringStore({
-    parse: (raw) => (typeof raw == "string" ? `parsed:${raw}` : fail()),
+    parse: (raw) => (typeof raw == "string" ? `parsed:${raw}` : safeStore.fail()),
   });
   storageData.set("__key__", JSON.stringify("__value__"));
   is(store.getItem("__key__"), "parsed:__value__");
@@ -111,7 +111,6 @@ testSetItem.run();
 const testCustomSerializer = suite("custom serializer");
 testCustomSerializer("stores result as-is", () => {
   const store = safeStore<string>({
-    json: false,
     storage,
     defaultValue: () => "",
     parse: (raw) => `parsed:${raw}`,
@@ -122,7 +121,6 @@ testCustomSerializer("stores result as-is", () => {
 });
 testCustomSerializer("gets result as-is", () => {
   const store = safeStore<string>({
-    json: false,
     storage,
     defaultValue: () => "",
     parse: (raw) => `parsed:${raw}`,
