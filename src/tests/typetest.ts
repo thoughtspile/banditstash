@@ -85,3 +85,16 @@ k1.getItem("k2");
 k1.hasItem("k2");
 // @ts-expect-error
 k1.setItem("k2", 0);
+
+// chaining
+safeStore<number>({
+  storage: safeStore<string>({
+    storage: localStorage,
+    fallback: false,
+    parse: raw => raw,
+    prepare: raw => raw,
+  }),
+  fallback: false,
+  parse: raw => Number(raw),
+  prepare: num => String(num)
+});
