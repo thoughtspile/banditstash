@@ -1,6 +1,7 @@
 export function safeStore<T, Meta extends SafeStoreMeta = never>(
-  { storage, parse, prepare, fallback }: SafeStoreOptions<T, string>
+  options: SafeStoreOptions<T, string>
 ): SafeStore<T, GetKeys<Meta>> {
+  const { storage, parse, prepare, fallback, safeSet = true } = options;
   function getItemUnsafe(key: string) {
     const raw = storage.getItem(key);
     return raw == null ? safeStore.fail() : parse(raw);
@@ -17,7 +18,9 @@ export function safeStore<T, Meta extends SafeStoreMeta = never>(
     setItem: (key, value) => {
       try {
         storage.setItem(key, prepare(value));
-      } catch (err) {}
+      } catch (err) {
+        if (!safeSet) throw err;
+      }
     },
     hasItem: (key) => {
       try {
@@ -56,6 +59,7 @@ export interface SafeStoreOptions<T, StorageType> {
   fallback: false | (() => T);
   parse: (rawValue: StorageType) => T;
   prepare: (rawValue: T) => StorageType;
+  safeSet?: boolean;
 }
 
 export interface SafeStore<T, Keys extends string> {

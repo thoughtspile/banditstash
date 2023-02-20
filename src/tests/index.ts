@@ -127,7 +127,7 @@ testSetItem("ignores setItem throw", () => {
   store.setItem("__key__", "9");
 });
 testSetItem("ignores non-serializable data", () => {
-  const store = safeStore<any>({
+  const store = safeStore.json<any>({
     storage,
     fallback: () => ({}),
     parse: (raw) => raw,
@@ -138,6 +138,47 @@ testSetItem("ignores non-serializable data", () => {
   store.setItem("__key__", circular);
 });
 testSetItem.run();
+
+
+const testUnsafeSetItem = suite('setItem unsafe');
+testUnsafeSetItem("serializes input", () => {
+  const store = safeStringStore({
+    safeSet: false,
+    prepare: (raw) => `prepared:${raw}`,
+  });
+  store.setItem("__key__", "__value__");
+  is(storageData.get("__key__"), JSON.stringify("prepared:__value__"));
+});
+testUnsafeSetItem("ignores missing storage", () => {
+  const store = safeStringStore({ storage: undefined as any, safeSet: false });
+  throws(() => store.setItem("__key__", "9"));
+});
+testUnsafeSetItem("ignores setItem throw", () => {
+  const store = safeStringStore({
+    safeSet: false,
+    storage: {
+      ...storage,
+      setItem: () => {
+        throw new Error("full");
+      },
+    },
+  });
+  throws(() => store.setItem("__key__", "9"));
+});
+testUnsafeSetItem("ignores non-serializable data", () => {
+  const store = safeStore.json<any>({
+    safeSet: false,
+    storage,
+    fallback: () => ({}),
+    parse: (raw) => raw,
+    prepare: (raw) => raw,
+  });
+  const circular = {};
+  circular["key"] = circular;
+  throws(() => store.setItem("__key__", circular));
+});
+testUnsafeSetItem.run();
+
 
 const testCustomSerializer = suite("custom serializer");
 testCustomSerializer("stores result as-is", () => {
