@@ -1,22 +1,21 @@
-export function safeStore<StorageType>(storage: TypedStorage<StorageType>) {
-  const store: SafeStore<StorageType> = {
+export function safeStore<StorageType>(storage: TypedStorage<StorageType>): SafeStore<StorageType> {
+  return {
     getItem: storage.getItem.bind(storage),
     setItem: storage.setItem.bind(storage),
     singleton: (key) => ({
-      getItem: store.getItem.bind(null, key),
-      setItem: store.setItem.bind(null, key),
+      getItem: storage.getItem.bind(null, key),
+      setItem: storage.setItem.bind(null, key),
     }),
-    use: (options) => safeStore(typeof options === 'function' ? options(store) : {
-      getItem: (key) => options.parse(store.getItem(key)),
-      setItem: (key, value) => store.setItem(key, options.prepare(value)),
+    format: options => safeStore({
+      getItem: (key) => options.parse(storage.getItem(key)),
+      setItem: (key, value) => storage.setItem(key, options.prepare(value)),
     }),
+    use: (options) => safeStore(options(storage)),
   };
-  return store;
 }
 
 export const json = () => ({
-  parse: (raw: string | null): Json =>
-    raw === null ? fail() : JSON.parse(raw),
+  parse: (raw: string | null): Json => raw ? JSON.parse(raw) : fail(),
   prepare: (data: Json) => JSON.stringify(data),
 });
 
@@ -63,11 +62,12 @@ export interface ParserOptions<Outer, Inner> {
   prepare: (rawValue: Outer) => Inner;
 }
 
-type Plugin<In, Out> = (store: SafeStore<In>) => TypedStorage<Out>;
+type Plugin<In, Out> = (store: TypedStorage<In>) => TypedStorage<Out>;
 
 export interface SafeStore<T> extends TypedStorage<T> {
   singleton: <Key extends string>(key: Key) => SingletonStore<T>;
-  use: <Outer>(options: Plugin<T, Outer> | ParserOptions<Outer, T>) => SafeStore<Outer>;
+  use: <Outer>(options: Plugin<T, Outer>) => SafeStore<Outer>;
+  format: <Outer>(options: ParserOptions<Outer, T>) => SafeStore<Outer>;
 }
 
 export interface SingletonStore<T> {
@@ -75,10 +75,9 @@ export interface SingletonStore<T> {
   setItem: (value: T) => void;
 }
 
-
 window['ds'] = safeStore(localStorage)
-    .use(json())
-    .use<number>({
+    .format(json())
+    .format<number>({
       parse: data => typeof data === 'number' ? data : fail(),
       prepare: raw => raw
     })
