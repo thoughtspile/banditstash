@@ -2,25 +2,21 @@ import { test } from "uvu";
 import { is, equal, throws } from "uvu/assert";
 import zod from "zod";
 import arson from "arson";
-import { safeStore } from "../index.js";
+import { json, safeStore } from "../modular.js";
+import { makeMemoryStorage } from "./memoryStorgage.js";
 
-const storageData = new Map<string, string>();
-const storage: Parameters<typeof safeStore>[0]["storage"] = {
-  getItem: (key) => storageData.get(key) ?? null,
-  setItem: (key, value) => storageData.set(key, value),
-};
+const { storage, storageData } = makeMemoryStorage();
 
 let now = 0;
 const ttlStore = (ttl: number) =>
-  safeStore<string>({
+  safeStore({ storage }).use<string>({
     parse: (raw) => {
-      const [_, ttlString, data] = raw.match(/^([0-9]+):(.*)/) || [];
+      const [_, ttlString, data] = raw?.match(/^([0-9]+):(.*)/) ?? [];
       if (now > Number(ttlString) || !data) safeStore.fail();
       return data;
     },
     prepare: (data) => `${now + ttl}:${data}`,
     fallback: false,
-    storage,
   });
 
 test("ttl", () => {
@@ -33,19 +29,20 @@ test("ttl", () => {
 
 test("ttl proxy", () => {
   now = 0;
-  const objectTtl = safeStore.json<{ name: string }>({
-    storage: ttlStore(100),
-    fallback: () => ({ name: "__fallback__" }),
-    parse: (raw) => {
-      return raw &&
-        typeof raw === "object" &&
-        "name" in raw &&
-        typeof raw["name"] === "string"
-        ? { name: raw.name }
-        : safeStore.fail();
-    },
-    prepare: (raw) => raw,
-  });
+  const objectTtl = ttlStore(100)
+    .use(json())
+    .use({
+      fallback: () => ({ name: "__fallback__" }),
+      parse: (raw) => {
+        return raw &&
+          typeof raw === "object" &&
+          "name" in raw &&
+          typeof raw["name"] === "string"
+          ? { name: raw.name }
+          : safeStore.fail();
+      },
+      prepare: (raw) => raw,
+    });
   objectTtl.setItem("__key__", { name: "me" });
   equal(objectTtl.getItem("__key__"), { name: "me" });
   now = 101;
@@ -59,12 +56,13 @@ test("zod", () => {
       age: zod.number().positive(),
     })
     .strict();
-  const userStore = safeStore.json<zod.infer<typeof schema>>({
-    storage,
-    fallback: () => ({ name: "__fallback__", age: 20 }),
-    parse: (raw) => schema.parse(raw),
-    prepare: (raw) => raw,
-  });
+  const userStore = safeStore({ storage })
+    .use(json())
+    .use<zod.infer<typeof schema>>({
+      parse: (raw) => schema.parse(raw),
+      prepare: (raw) => raw,
+      fallback: () => ({ name: "__fallback__", age: 20 }),
+    });
   userStore.setItem("me", { name: "vladimir", age: 28 });
   equal(userStore.getItem("me"), { name: "vladimir", age: 28 });
   storageData.set("broken", JSON.stringify({ name: "evil" }));
@@ -72,8 +70,7 @@ test("zod", () => {
 });
 
 test("arson", () => {
-  const registered = safeStore<Date>({
-    storage,
+  const registered = safeStore({ storage }).use<Date>({
     fallback: () => new Date(),
     parse: arson.parse,
     prepare: arson.stringify,
