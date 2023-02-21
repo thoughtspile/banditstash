@@ -1,86 +1,99 @@
 const id = <T>(v: T) => v;
 
-export function safeStore<StorageType>(storage: TypedStorage<StorageType>): SafeStore<StorageType> {
+export function safeStore<T>(storage: TypedStorage<T>): SafeStore<T> {
   return {
     getItem: storage.getItem.bind(storage),
     setItem: storage.setItem.bind(storage),
     singleton: (key) => ({
-      getItem: storage.getItem.bind(null, key),
-      setItem: storage.setItem.bind(null, key),
+      getItem: storage.getItem.bind(storage, key),
+      setItem: storage.setItem.bind(storage, key),
     }),
-    format: options => safeStore({
-      getItem: (key) => (options.parse || id)(storage.getItem(key)),
-      setItem: (key, value) => storage.setItem(key, (options.prepare || id)(value)),
-    }),
+    format: (options) =>
+      safeStore({
+        getItem: (key) => (options.parse || id)(storage.getItem(key)),
+        setItem: (key, value) =>
+          storage.setItem(key, (options.prepare || id)(value)),
+      }),
     use: (options) => safeStore(options(storage)),
   };
 }
 
 export const json = () => ({
-  parse: (raw: string | null): Json => raw ? JSON.parse(raw) : fail(),
-  prepare: (data: Json) => JSON.stringify(data),
+  parse: JSON.parse as (raw: string | null) => Json,
+  prepare: JSON.stringify as (data: Json) => string,
 });
 
-export const scope = <T>(prefix: string): Plugin<T, T> => (storage) => ({
-  getItem: key => storage.getItem(prefix + ':' + key),
-  setItem: (key, value) => storage.setItem(prefix + ':' + key, value),
-});
+export function scope<T>(prefix: string): Plugin<T, T> {
+  return (storage) => ({
+    getItem: (key) => storage.getItem(prefix + ":" + key),
+    setItem: (key, value) => storage.setItem(prefix + ":" + key, value),
+  });
+}
 
-export const safeGet = <T>(fallback: false | (() => T)): Plugin<T, T> => store => ({
-  getItem: fallback ? (key) => {
-    try {
-      return store.getItem(key);
-    } catch (err) {
-      return fallback();
-    }
-  } : store.getItem,
-  setItem: store.setItem,
-});
+export function safeGet<T>(fallback: () => T): Plugin<T, T> {
+  return (store) => ({
+    getItem: (key) => {
+      try {
+        return store.getItem(key);
+      } catch (err) {
+        return fallback();
+      }
+    },
+    setItem: store.setItem,
+  });
+}
 
-export const safeSet = <T>(): Plugin<T, T> => store => ({
-  getItem: store.getItem,
-  setItem: (key, value) => {
-    try {
-      store.setItem(key, value);
-    } catch (err) {}
-  }
-});
+export function safeSet<T>(): Plugin<T, T> {
+  return (store) => ({
+    getItem: store.getItem,
+    setItem: (key, value) => {
+      try {
+        store.setItem(key, value);
+      } catch (err) {}
+    },
+  });
+}
 
-export const fail = function fail(message?: string): never {
+export function fail(message?: string): never {
   throw new TypeError(message || "BanditStore parse failed");
-};
+}
 
 /** types */
 type Primitive = string | number | boolean | null | undefined;
 export type Json = Primitive | Json[] | { [key: string]: Json };
 
-type TypedStorage<ItemType, Keys = string> = {
-  getItem: [Keys] extends [never] ? () => ItemType : (key: string) => ItemType;
-  setItem: [Keys] extends [never] ? (value: ItemType) => void : (key: string, value: ItemType) => void;
-};
-
-type ParserOptions<Outer, Inner> = 
-  ([Inner] extends [Outer] ? { parse?: (rawValue: Inner) => Outer; } : { parse: (rawValue: Inner) => Outer; }) &
-  ([Outer] extends [Inner] ? { prepare?: (rawValue: Outer) => Inner; } : { prepare: (rawValue: Outer) => Inner; });
-
-type Plugin<In, Out> = (store: TypedStorage<In>) => TypedStorage<Out>;
-
 export interface SafeStore<T> extends TypedStorage<T> {
   singleton: <Key extends string>(key: Key) => SingletonStore<T>;
-  use: <Outer>(options: Plugin<T, Outer>) => SafeStore<Outer>;
-  format: <Outer>(options: ParserOptions<Outer, T>) => SafeStore<Outer>;
+  use: <Outer>(plugin: Plugin<T, Outer>) => SafeStore<Outer>;
+  format: <Outer>(formatter: Formatter<T, Outer>) => SafeStore<Outer>;
 }
+
+interface TypedStorage<ItemType> {
+  getItem: (key: string) => ItemType;
+  setItem: (key: string, value: ItemType) => void;
+}
+
+export type Formatter<Inner, Outer> = ([Inner] extends [Outer]
+  ? { parse?: (rawValue: Inner) => Outer }
+  : { parse: (rawValue: Inner) => Outer }) &
+  ([Outer] extends [Inner]
+    ? { prepare?: (rawValue: Outer) => Inner }
+    : { prepare: (rawValue: Outer) => Inner });
+
+export type Plugin<In, Out> = (store: TypedStorage<In>) => TypedStorage<Out>;
 
 export interface SingletonStore<T> {
   getItem: () => T;
   setItem: (value: T) => void;
 }
 
-window['ds'] = safeStore(localStorage)
-  .use(scope('app'))
-  .format(json())
-  .format<number>({
-    parse: data => typeof data === 'number' ? data : fail(),
-  })
-  .use(safeGet(() => 0))
-  .use(safeSet());
+export function banditStash<T>(options) {
+  let store = safeStore(options.storage).format(json()).format<T>({
+    parse: options.parse,
+    prepare: options.prepare,
+  });
+  options.fallback && (store = store.use(safeGet(options.fallback)));
+  options.safeSet && (store = store.use(safeSet()));
+  options.scope && (store = store.use(scope(options.scope)));
+  return store;
+}
