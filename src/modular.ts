@@ -1,3 +1,5 @@
+const id = <T>(v: T) => v;
+
 export function safeStore<StorageType>(storage: TypedStorage<StorageType>): SafeStore<StorageType> {
   return {
     getItem: storage.getItem.bind(storage),
@@ -7,8 +9,8 @@ export function safeStore<StorageType>(storage: TypedStorage<StorageType>): Safe
       setItem: storage.setItem.bind(null, key),
     }),
     format: options => safeStore({
-      getItem: (key) => options.parse(storage.getItem(key)),
-      setItem: (key, value) => storage.setItem(key, options.prepare(value)),
+      getItem: (key) => (options.parse || id)(storage.getItem(key)),
+      setItem: (key, value) => storage.setItem(key, (options.prepare || id)(value)),
     }),
     use: (options) => safeStore(options(storage)),
   };
@@ -57,10 +59,9 @@ type TypedStorage<ItemType, Keys = string> = {
   setItem: [Keys] extends [never] ? (value: ItemType) => void : (key: string, value: ItemType) => void;
 };
 
-export interface ParserOptions<Outer, Inner> {
-  parse: (rawValue: Inner) => Outer;
-  prepare: (rawValue: Outer) => Inner;
-}
+type ParserOptions<Outer, Inner> = 
+  ([Inner] extends [Outer] ? { parse?: (rawValue: Inner) => Outer; } : { parse: (rawValue: Inner) => Outer; }) &
+  ([Outer] extends [Inner] ? { prepare?: (rawValue: Outer) => Inner; } : { prepare: (rawValue: Outer) => Inner; });
 
 type Plugin<In, Out> = (store: TypedStorage<In>) => TypedStorage<Out>;
 
@@ -76,11 +77,10 @@ export interface SingletonStore<T> {
 }
 
 window['ds'] = safeStore(localStorage)
-    .format(json())
-    .format<number>({
-      parse: data => typeof data === 'number' ? data : fail(),
-      prepare: raw => raw
-    })
-    .use(safeGet(() => 0))
-    .use(scope('app'))
-    .use(safeSet());
+  .use(scope('app'))
+  .format(json())
+  .format<number>({
+    parse: data => typeof data === 'number' ? data : fail(),
+  })
+  .use(safeGet(() => 0))
+  .use(safeSet());
