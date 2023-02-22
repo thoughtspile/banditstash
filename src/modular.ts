@@ -36,7 +36,6 @@ export function scope<T>(prefix: string): Plugin<T, T> {
 
 export function safeGet<T>(fallback: () => T): Plugin<T, T> {
   return (store) => ({
-    ...store,
     getItem: (key) => {
       try {
         return store.getItem(key);
@@ -44,17 +43,20 @@ export function safeGet<T>(fallback: () => T): Plugin<T, T> {
         return fallback();
       }
     },
+    setItem: store.setItem,
+    removeItem: store.removeItem,
   });
 }
 
 export function safeSet<T>(): Plugin<T, T> {
   return (store) => ({
-    ...store,
     setItem: (key, value) => {
       try {
         store.setItem(key, value);
       } catch (err) {}
     },
+    getItem: store.getItem,
+    removeItem: store.removeItem,
   });
 }
 
@@ -94,20 +96,9 @@ export interface SingletonStore<T> {
 }
 
 export function banditStash<T>(options) {
-  let store = safeStore(options.storage).format(json()).format<T>({
-    parse: options.parse,
-    prepare: options.prepare,
-  });
+  let store = safeStore(options.storage).format(json()).format<T>(options);
+  options.scope && (store = store.use(scope(options.scope)));
   options.fallback && (store = store.use(safeGet(options.fallback)));
   options.safeSet && (store = store.use(safeSet()));
-  options.scope && (store = store.use(scope(options.scope)));
   return store;
 }
-
-window['ds'] = safeStore(localStorage).format(json()).format<number>({
-  parse: x => typeof x === 'number' ? x : fail(),
-  prepare: y => y,
-})
-.use(safeGet(() => 0))
-.use(safeSet())
-.use(scope('app'));
