@@ -27,6 +27,7 @@ Default `banditStash` factory gives you:
 - Runtime validation to prevent malformed objects from exploding at runtime
 - Catching getItem / setItem errors
 - Optional scoping to prevent key collisions
+- Fallback for missing storage (e.g. in SSR)
 
 ```ts
 import { banditStash, fail } from 'banditstash';
@@ -110,6 +111,8 @@ const universalStorage = makeBanditStash(typeof window === 'undefined' ? {
   removeItem: (() => {}),
 } : window.localStorage);
 ```
+
+banditstash provides one built-in custom storage — `noStorage`. It throws error on any access, but lets you construct a banditstash instance when no storage is available (e.g. in SSR).
 
 ### Custom serializer
 
@@ -207,7 +210,7 @@ Note that, due to chaining, `safeGet` and `safeSet` only handle errors from plug
 Creates a default stash with JSON serialization, validation and error handling. Specifying data type explicitly is recommended.
 
 Options:
-- `storage`: `localStorage`, `sessionStorage`, or an object with compatible `getItem`, `setItem`, and `removeItem` methods.
+- `storage`: `localStorage`, `sessionStorage`, or an object with compatible `getItem`, `setItem`, and `removeItem` methods. If `undefined` is passed, `noStorage` is used to construct the instance.
 - `parse`: a function that either converts a free-form JSON to the `Data` type, or throws an error, during `getItem`. Usually required.
 - `prepare`: a function that converts `Data` to a JSON-serializable object during `setItem`. Required for non-serializable types like `Date`, `Map`, `Set`, etc.
 - `fallback: (() => Data) | false` : value to return when `getItem` can't retrieve data from storage. If set to false, error will be thrown.
@@ -228,6 +231,16 @@ A helper to conveniently throw errors in `parse`:
   }
 }
 ```
+
+### `noStorage()`
+
+A custom storage that throws on every access. Can be used when `Storage` is not available to safely construct `banditstash`:
+
+```ts
+makeBanditStash(typeof window === 'undefined' ? noStorage() : window.localStorage);
+```
+
+Full `banditStash` falls back to `noStorage` if `storage` option is falsy.
 
 ### `makeBanditStash(storage)`
 

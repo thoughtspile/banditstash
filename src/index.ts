@@ -69,6 +69,10 @@ export function fail(message?: string): never {
   throw new TypeError(message || "BanditStash error");
 }
 
+export function noStorage(): TypedStorage<never> {
+  return { getItem: fail, setItem: fail, removeItem: fail };
+}
+
 /** types */
 type Primitive = string | number | boolean | null | undefined;
 export type Json = Primitive | Json[] | { [key: string]: Json };
@@ -103,7 +107,7 @@ export interface SingletonStore<T> {
 }
 
 export function banditStash<T>(options: BanditStashOptions<T>) {
-  let store = makeBanditStash(options.storage)
+  let store = makeBanditStash(options.storage || noStorage())
     .format(json())
     .format<T>(options);
   options.scope && (store = store.use(scope(options.scope)));
@@ -113,7 +117,10 @@ export function banditStash<T>(options: BanditStashOptions<T>) {
 }
 
 export type BanditStashOptions<T> = BanditFormatter<Json, T> & {
-  storage: Pick<Storage, "getItem" | "setItem" | "removeItem">;
+  storage:
+    | Pick<Storage, "getItem" | "setItem" | "removeItem">
+    | null
+    | undefined;
   scope?: string;
   fallback: false | (() => T);
   safeSet?: boolean;

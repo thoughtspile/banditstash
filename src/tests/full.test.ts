@@ -112,3 +112,24 @@ scopeSuite("allows scope", () => {
   is(data.has("prefix:key"), false);
 });
 scopeSuite.run();
+
+const noStorageSuite = suite("missing storage");
+noStorageSuite("can be constructed", () => {
+  banditStash<string>({
+    storage: undefined,
+    parse: String,
+    fallback: false,
+  });
+});
+noStorageSuite("all methods throw", () => {
+  const noStorage = banditStash({
+    storage: undefined,
+    parse: String,
+    fallback: false,
+    safeSet: false,
+  });
+  throws(() => noStorage.getItem("key"));
+  throws(() => noStorage.setItem("key", "value"));
+  throws(() => noStorage.removeItem("key"));
+});
+noStorageSuite.run();

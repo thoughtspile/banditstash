@@ -1,6 +1,12 @@
 import { suite as makeSuite } from "uvu";
 import { equal, is, throws } from "uvu/assert";
-import { fail, makeBanditStash, safeGet, safeSet } from "../index.js";
+import {
+  fail,
+  makeBanditStash,
+  noStorage,
+  safeGet,
+  safeSet,
+} from "../index.js";
 import { memoryStorage } from "./memoryStorage.js";
 
 const { data, storage } = memoryStorage();
@@ -11,6 +17,10 @@ safeGetSuite("fallback on parse error", () => {
   const stash = makeBanditStash(storage)
     .format<never>({ parse: () => fail() })
     .use(safeGet(() => "__fallback__"));
+  is(stash.getItem("key"), "__fallback__");
+});
+safeGetSuite("fallback on noStorage", () => {
+  const stash = makeBanditStash(noStorage()).use(safeGet(() => "__fallback__"));
   is(stash.getItem("key"), "__fallback__");
 });
 
