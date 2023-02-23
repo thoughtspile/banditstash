@@ -53,19 +53,19 @@ const setStash = banditStash<Set<string>>({
 
 // getItem always returns Set<string> — either from storage or fallback:
 const readMessages: Set<string> = setStash.getItem('read-ids');
-const isMessageRead = readMessages.has(id);
+const isMessageRead = readMessages.has('id');
 
 // setItem accepts Set<string> and serializes it for you:
-setStash.setItem('read-ids', new Set('123', '234'));
+setStash.setItem('read-ids', new Set(['123', '234']));
 
 // removeItem is same as in raw storage
-setStash.remove('read-ids');
+setStash.removeItem('read-ids');
 
 // Bind key with .singleton() for easy access to a sinlge item:
 const readStash = setStash.singleton('read-messages');
-const ids = readIds.getItem();
-readIds.setItem(ids);
-readIds.removeItem();
+const ids = readStash.getItem();
+readStash.setItem(ids.add('123'));
+readStash.removeItem();
 ```
 
 This setup catches errors from both `getItem` (validation fails, invalid JSON in storage, missing storage) and `setItem` (full or missing storage, failed serialization). This can be disabled with explicit `fallback: false` and `safeSet: false`, respectively — useful for debugging, or to show an explicit error message to the user.
@@ -77,6 +77,8 @@ This setup catches errors from both `getItem` (validation fails, invalid JSON in
 Using the base `makeBanditStash` factory with `use` and `format` methods, you can further reduce bundle size (down to 187 bytes without plugins) or modify the behavior of your stores. Plugins and formatters are chainable and _always_ return a new object.
 
 ```ts
+import { makeBanditStash, fail } from 'banditstash';
+
 const stringStore = makeBanditStash(localStorage).format<string>({
   parse: data => data == null ? fail() : data
 });
@@ -98,6 +100,8 @@ Stashes built using the default factory can be further enhanced with more plugin
 Banditstash is not limited to browser Storage APIs — you can provide any object with `getItem`, `setItem` and `removeItem` methods that accept string key. The values needn't be strings, and makeBanditStash will infer storage value type.
 
 ```ts
+import { makeBanditStash, fail } from 'banditstash';
+
 const map = new Map<string, number>();
 const memoryStorage = makeBanditStash({
   getItem: (key) => map.get(key) ?? fail(),
@@ -119,6 +123,8 @@ banditstash provides one built-in custom storage — `noStorage`. It throws erro
 If JSON does not satisfy you as a storage format, you can easily use your own serializer. Here's an example of manually serializing a number:
 
 ```ts
+import { makeBanditStash, fail } from 'banditstash';
+
 const numberStash = makeBanditStash(localStorage).format<number>({
   parse: raw => {
     const num = Number(raw);
@@ -131,6 +137,9 @@ const numberStash = makeBanditStash(localStorage).format<number>({
 Any serialization library, like [arson](https://github.com/benjamn/arson) or [devalue,](https://github.com/Rich-Harris/devalue) will work:
 
 ```ts
+import { makeBanditStash, fail } from 'banditstash';
+import arson from 'arson';
+
 const dateStash = makeBanditStash(localStorage).format<Date>({
   parse: arson.parse,
   prepare: arson.stringify
@@ -138,7 +147,7 @@ const dateStash = makeBanditStash(localStorage).format<Date>({
 dateStash.setItem('registered', new Date(2022, 3, 16));
 const registeredAt: Date = dateStash.getItem('registered');
 ```
-For reference, the builtin JSON serialization is implemented like this:
+Default JSON serialization is implemented via `json` formatter:
 
 ```ts
 import { makeBanditStash, json } from 'banditstash';
@@ -151,14 +160,17 @@ makeBanditStash(localStorage).format(json());
 Banditstash plays nicely with any validation library, as long as you `throw` (or `fail()`) on invalid values. Here's an example with [zod:](https://zod.dev/)
 
 ```ts
-const userSchema = zod.object({
-  name: zod.string(),
-  age: zod.number().positive(),
+import { makeBanditStash, fail } from 'banditstash';
+import { z } from 'zod';
+
+const userSchema = z.object({
+  name: z.string(),
+  age: z.number().positive(),
 }).strict();
 
-const userStore = banditStash(localStorage)
-  .format<zod.infer<typeof userSchema>>({
-    parse: raw => schema.parse(raw),
+const userStore = makeBanditStash(localStorage)
+  .format<z.infer<typeof userSchema>>({
+    parse: raw => userSchema.parse(raw),
   });
 
 userStore.setItem('me', { name: 'vladimir', age: 28 });
@@ -186,7 +198,8 @@ const userStorage = appStorage.use(scope('user'));
 const cacheStorage = appStorage.use(scope('cache'));
 
 userStorage.getItem('avatar');
-// localStorage.getItem('app:user:avatar')
+// equivalent to
+localStorage.getItem('app:user:avatar')
 ```
 
 ### Runtime safety
@@ -237,6 +250,8 @@ A helper to conveniently throw errors in `parse`:
 A custom storage that throws on every access. Can be used when `Storage` is not available to safely construct `banditstash`:
 
 ```ts
+import { makeBanditStash, noStorage } from 'banditstash';
+
 makeBanditStash(typeof window === 'undefined' ? noStorage() : window.localStorage);
 ```
 
