@@ -1,7 +1,7 @@
-const id = <T>(v: T) => v;
+var id = <T>(v: T) => v;
 
 export function makeBanditStash<T>(storage: TypedStorage<T>) {
-  const store: BanditStash<T> = {
+  var store: BanditStash<T> = {
     getItem: storage.getItem.bind(storage),
     setItem: storage.setItem.bind(storage),
     removeItem: storage.removeItem.bind(storage),
@@ -9,7 +9,8 @@ export function makeBanditStash<T>(storage: TypedStorage<T>) {
     format: (options) =>
       makeBanditStash({
         getItem: (key) => (options.parse || id)(storage.getItem(key)),
-        setItem: (key, value) => storage.setItem(key, (options.prepare || id)(value)),
+        setItem: (key, value) =>
+          storage.setItem(key, (options.prepare || id)(value)),
         removeItem: store.removeItem,
       }),
     use: (options) => makeBanditStash(options(store)),
@@ -23,16 +24,18 @@ export function makeBanditStash<T>(storage: TypedStorage<T>) {
   return store;
 }
 
-export const json = () => ({
-  parse: JSON.parse as (raw: string | null) => Json,
-  prepare: JSON.stringify as (data: Json) => string,
-});
+export function json() {
+  return {
+    parse: JSON.parse as (raw: string | null) => Json,
+    prepare: JSON.stringify as (data: Json) => string,
+  };
+}
 
 export function scope<T>(prefix: string): BanditPlugin<T, T> {
   return (storage) => ({
     getItem: (key) => storage.getItem(prefix + ":" + key),
     setItem: (key, value) => storage.setItem(prefix + ":" + key, value),
-    removeItem: key => storage.removeItem(prefix + ":" + key),
+    removeItem: (key) => storage.removeItem(prefix + ":" + key),
   });
 }
 
@@ -62,8 +65,8 @@ export function safeSet<T>(): BanditPlugin<T, T> {
   });
 }
 
-export function fail(message = "BanditStore error"): never {
-  throw new TypeError(message);
+export function fail(message?: string): never {
+  throw new TypeError(message || "BanditStash error");
 }
 
 /** types */
@@ -89,7 +92,9 @@ export type BanditFormatter<Inner, Outer> = ([Inner] extends [Outer]
     ? { prepare?: (rawValue: Outer) => Inner }
     : { prepare: (rawValue: Outer) => Inner });
 
-export type BanditPlugin<In, Out> = (store: BanditStash<In>) => TypedStorage<Out>;
+export type BanditPlugin<In, Out> = (
+  store: BanditStash<In>
+) => TypedStorage<Out>;
 
 export interface SingletonStore<T> {
   getItem: () => T;
@@ -97,18 +102,19 @@ export interface SingletonStore<T> {
   removeItem: () => void;
 }
 
-
 export function banditStash<T>(options: BanditStashOptions<T>) {
-  let store = makeBanditStash(options.storage).format(json()).format<T>(options);
+  let store = makeBanditStash(options.storage)
+    .format(json())
+    .format<T>(options);
   options.scope && (store = store.use(scope(options.scope)));
   options.fallback && (store = store.use(safeGet(options.fallback)));
-  (options.safeSet !== false) && (store = store.use(safeSet()));
+  options.safeSet !== false && (store = store.use(safeSet()));
   return store;
 }
 
 export type BanditStashOptions<T> = BanditFormatter<Json, T> & {
-  storage: Pick<Storage, 'getItem' | 'setItem' | 'removeItem'>;
+  storage: Pick<Storage, "getItem" | "setItem" | "removeItem">;
   scope?: string;
   fallback: false | (() => T);
   safeSet?: boolean;
-}
+};

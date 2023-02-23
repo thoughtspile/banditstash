@@ -1,5 +1,5 @@
 {
-  "name": "safestore",
+  "name": "banditstash",
   "version": "0.0.1",
   "description": "Type-safe wrapper for localStorage / sessionStorage",
   "author": "Vladimir Klepov v.klepov@gmail.com",
@@ -14,9 +14,10 @@
     "node": "^14 || ^16 || >=18"
   },
   "scripts": {
-    "test": "npm run build && uvu dist/tests .test.ts$'",
+    "test": "npm run build && uvu dist/tests '.test.js$'",
+    "test:coverage": "c8 --100 npm test",
     "format": "prettier --write --loglevel silent src",
-    "verify": "npm run format && npm test",
+    "verify": "npm run format && npm run test:coverage",
     "terser": "npx npx terser dist/index.js -m -c --toplevel > dist/index.min.js",
     "size:raw": "cat dist/index.min.js | wc -c",
     "size:gz": "cat dist/index.min.js | gzip -c | wc -c",
@@ -25,7 +26,7 @@
   },
   "repository": {
     "type": "git",
-    "url": "git+https://github.com/thoughtspile/safestore.git"
+    "url": "git+https://github.com/thoughtspile/banditstash.git"
   },
   "keywords": [
     "localstorage",
@@ -34,11 +35,12 @@
     "zod"
   ],
   "bugs": {
-    "url": "https://github.com/thoughtspile/safestore/issues"
+    "url": "https://github.com/thoughtspile/banditstash/issues"
   },
-  "homepage": "https://github.com/thoughtspile/safestore#readme",
+  "homepage": "https://github.com/thoughtspile/banditstash#readme",
   "devDependencies": {
     "arson": "^0.2.6",
+    "c8": "^7.13.0",
     "prettier": "^2.8.4",
     "terser": "^5.16.4",
     "typescript": "^4.9.5",
