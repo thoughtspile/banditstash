@@ -1,6 +1,6 @@
 {
   "name": "banditstash",
-  "version": "0.0.2",
+  "version": "0.0.3",
   "description": "Type-safe wrapper for localStorage / sessionStorage",
   "author": "Vladimir Klepov v.klepov@gmail.com",
   "license": "MIT",
