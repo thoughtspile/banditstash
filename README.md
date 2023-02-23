@@ -1,14 +1,14 @@
 # banditstash
 
-A better way to interact with `localStorage` and `sessionStorage` — safe and infinitely extensible.
+TypeScript-first, extensible local and sessionStorage wrapper:
 
 - __Type-safe:__ no sneaky bugs if storage is corrupted.
-- __Sane defaults:__ JSON serialization, type-safe parsing, runtime safety out of the box.
+- __Sane defaults:__ JSON serialization, runtime validation and catching errors out of the box.
 - __Key scoping:__ prevent collisions and access values with ease.
 - __Tiny:__ 400 bytes full build, or a 187-byte core with modular features.
 - __Extensible:__ replace JSON with any serializer or use your favorite validation library.
 - __Familiar API:__ no trickery, just good old getItem / setItem with stricter types.
-- __Custom storage:__ not limited to local / sessionStorage.
+- __Custom storage:__ not limited to local / sessionStorage, works in SSR.
 
 __Beware!__ This is an early version of the package. API might change, bugs might exist.
 
