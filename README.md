@@ -1,14 +1,22 @@
 # banditstash
 
-Banditstash is a better way to interact with localStorage and sessionStorage — fully typed, easy to get started, and infinitely tweakable.
+A better way to interact with localStorage and sessionStorage.
 
-- Tiny 
+- Tiny ()
 - Sane defaults
 - Non-opinionated:
 - Safe by default
 - Maximum API compatibility with Storage for easy migration
 
 ## Table of contents
+
+- Basic usage
+- Custom bandit stashes
+- Custom serializers
+- Chainable formats
+- Runtime safety
+- Writing plugins
+- API reference
 
 ## Getting started
 

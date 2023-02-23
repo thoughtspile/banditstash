@@ -1,13 +1,26 @@
 {
   "name": "safestore",
-  "type": "module",
   "version": "0.0.1",
   "description": "Type-safe wrapper for localStorage / sessionStorage",
-  "main": "dist/index.js",
+  "author": "Vladimir Klepov v.klepov@gmail.com",
+  "license": "MIT",
+  "type": "module",
+  "sideEffects": false,
+  "exports": {
+    ".": "./dist/index.js"
+  },
+  "types": "./dist/index.d.ts",
+  "engines": {
+    "node": "^14 || ^16 || >=18"
+  },
   "scripts": {
-    "test": "npm run build && uvu dist/tests -i 'typetest|.*\\.ts$'",
+    "test": "npm run build && uvu dist/tests .test.ts$'",
     "format": "prettier --write --loglevel silent src",
     "verify": "npm run format && npm test",
+    "terser": "npx npx terser dist/index.js -m -c --toplevel > dist/index.min.js",
+    "size:raw": "cat dist/index.min.js | wc -c",
+    "size:gz": "cat dist/index.min.js | gzip -c | wc -c",
+    "size": "npm run terser && npm run size:raw && npm run size:gz",
     "build": "tsc"
   },
   "repository": {
@@ -16,13 +29,10 @@
   },
   "keywords": [
     "localstorage",
-    "typescript",
     "sessionstorage",
-    "zod",
-    "typesafe"
+    "typescript",
+    "zod"
   ],
-  "author": "Vladimir Klepov v.klepov@gmail.com",
-  "license": "MIT",
   "bugs": {
     "url": "https://github.com/thoughtspile/safestore/issues"
   },
