@@ -10,6 +10,8 @@ A better way to interact with `localStorage` and `sessionStorage` — safe and i
 - __Familiar API:__ no trickery, just good old getItem / setItem with stricter types.
 - __Custom storage:__ not limited to local / sessionStorage.
 
+__Beware!__ This is an early version of the package. API might change, bugs might exist.
+
 ## Install
 
 ```sh
