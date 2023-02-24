@@ -157,20 +157,20 @@ makeBanditStash(localStorage).format(json());
 
 ### Using a validation library
 
-Banditstash plays nicely with any validation library, as long as you `throw` (or `fail()`) on invalid values. Here's an example with [zod:](https://zod.dev/)
+Manual type-checking can get tedious. Banditstash plays nicely with any validation library, as long as you `throw` (or `fail()`) on invalid values. I recommend [superstruct](https://docs.superstructjs.org/) — it's similar and modular, just like banditstash:
 
 ```ts
 import { makeBanditStash, fail } from 'banditstash';
-import { z } from 'zod';
+import { object, string, number, min, type Infer } from 'superstruct';
 
-const userSchema = z.object({
-  name: z.string(),
-  age: z.number().positive(),
-}).strict();
+const userSchema = object({
+  name: string(),
+  age: min(number(), 0),
+});
 
 const userStore = makeBanditStash(localStorage)
-  .format<z.infer<typeof userSchema>>({
-    parse: raw => userSchema.parse(raw),
+  .format<Infer<typeof userSchema>>({
+    parse: raw => userSchema.create(raw),
   });
 
 userStore.setItem('me', { name: 'vladimir', age: 28 });
@@ -182,7 +182,7 @@ try {
 }
 ```
 
-Any other validation library — [io-ts,](https://gcanti.github.io/io-ts/) [yup,](https://github.com/jquense/yup) etc — is similarly easy to add.
+Any other validation library — [zod,](https://zod.dev/) [io-ts,](https://gcanti.github.io/io-ts/) [yup,](https://github.com/jquense/yup) etc — is similarly easy to add.
 
 ### Scoping
 
