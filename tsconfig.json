@@ -1,9 +1,9 @@
 {
 	"compilerOptions": {
 		"module": "es2020",
-		"lib": ["es2015", "DOM"],
+		"lib": ["ES6", "DOM"],
 		"moduleResolution": "node",
-		"target": "es2015",
+		"target": "ES5",
 		"importsNotUsedAsValues": "error",
 		"preserveValueImports": true,
 		"isolatedModules": true,

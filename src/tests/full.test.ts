@@ -10,7 +10,7 @@ full.before.each(() => data.clear());
 const fallback = () => new Set([0]);
 const setStash = banditStash<Set<number>>({
   storage,
-  prepare: (set) => [...set],
+  prepare: (set) => Array.from(set),
   parse: (raw) =>
     Array.isArray(raw)
       ? new Set(raw.filter((x): x is number => typeof x === "number"))
@@ -51,7 +51,7 @@ fallbackSuite("fallback on parse error", () => {
 
 const unsafeGet = banditStash<Set<number>>({
   storage,
-  prepare: (set) => [...set],
+  prepare: (set) => Array.from(set),
   parse: (raw) =>
     Array.isArray(raw)
       ? new Set(raw.filter((x): x is number => typeof x === "number"))
