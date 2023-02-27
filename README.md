@@ -12,6 +12,8 @@ TypeScript-first, extensible local and sessionStorage wrapper:
 
 __Beware!__ This is an early version of the package. API might change, bugs might exist.
 
+Banditstash has a companion 400-byte type-checking library, [banditypes,](https://github.com/thoughtspile/banditypes) to make validation much more convenient without inflating your bundle.
+
 ## Install
 
 ```sh
@@ -69,6 +71,8 @@ readStash.removeItem();
 ```
 
 This setup catches errors from both `getItem` (validation fails, invalid JSON in storage, missing storage) and `setItem` (full or missing storage, failed serialization). This can be disabled with explicit `fallback: false` and `safeSet: false`, respectively — useful for debugging, or to show an explicit error message to the user.
+
+Manual object validation is quite tedious, so I suggest the companion validator — [banditypes.](https://github.com/thoughtspile/banditypes) If you want something more established, every other validation library — superstruct, zod, io-ts — also integrates easily.
 
 ## Custom banditStashes
 
