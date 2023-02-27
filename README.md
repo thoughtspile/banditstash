@@ -157,7 +157,7 @@ makeBanditStash(localStorage).format(json());
 
 ### Using a validation library
 
-Manual type-checking can get tedious. Banditstash plays nicely with any validation library, as long as you `throw` (or `fail()`) on invalid values. I recommend [superstruct](https://docs.superstructjs.org/) — it's similar and modular, just like banditstash:
+Manual type-checking can get tedious. Banditstash plays nicely with any validation library, as long as you `throw` (or `fail()`) on invalid values. I recommend either the 400-byte companion library [banditypes](https://github.com/thoughtspile/banditypes) or [superstruct](https://docs.superstructjs.org/) — it's small and modular, just like banditstash:
 
 ```ts
 import { makeBanditStash, fail } from 'banditstash';
