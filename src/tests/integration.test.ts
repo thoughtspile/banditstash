@@ -1,6 +1,7 @@
 import { test } from "uvu";
 import { z } from 'zod';
 import { object, string, number, min, type Infer } from 'superstruct';
+import * as banditypes from 'banditypes';
 import arson from 'arson'
 import { equal, is, throws } from "uvu/assert";
 import { banditStash, fail, makeBanditStash } from "../index.js";
@@ -66,6 +67,29 @@ test('works with superstruct validator', () => {
   const store = banditStash<Infer<typeof rentSchema>>({
     storage,
     parse: raw => rentSchema.create(raw),
+    fallback: false
+  });
+  const sample = { price: 100, location: { country: 'israel', city: 'Tel Aviv' } };
+  store.setItem('key', sample);
+  is(data.get('key'), JSON.stringify(sample));
+  equal(store.getItem('key'), sample);
+  store.removeItem('key');
+  is(data.get('key'), undefined);
+  data.set('invalid', JSON.stringify({ location: sample.location }));
+  throws(() => store.getItem('invalid'));
+});
+
+test('works with banditypes validator', () => {
+  const rentSchema = banditypes.object({
+    price: banditypes.number().map(n => n >= 0 ? n : banditypes.fail()),
+    location: banditypes.object({
+      country: banditypes.string(),
+      city: banditypes.string()
+    })
+  });
+  const store = banditStash<banditypes.Infer<typeof rentSchema>>({
+    storage,
+    parse: raw => rentSchema(raw),
     fallback: false
   });
   const sample = { price: 100, location: { country: 'israel', city: 'Tel Aviv' } };
