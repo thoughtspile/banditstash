@@ -16,7 +16,7 @@
   "scripts": {
     "test": "npm run build && uvu dist/tests '.test.js$'",
     "test:coverage": "c8 --100 npm test",
-    "lint": "prettier --log-level warn .",
+    "lint": "prettier --check --log-level warn .",
     "format": "prettier --write --log-level warn .",
     "verify": "npm run lint && npm run test:coverage",
     "terser": "npx npx terser dist/index.js -m -c --toplevel > dist/index.min.js",
