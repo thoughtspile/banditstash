@@ -97,7 +97,7 @@ export type BanditFormatter<Inner, Outer> = ([Inner] extends [Outer]
     : { prepare: (rawValue: Outer) => Inner });
 
 export type BanditPlugin<In, Out> = (
-  store: BanditStash<In>
+  store: BanditStash<In>,
 ) => TypedStorage<Out>;
 
 export interface SingletonStore<T> {
