@@ -1,3 +1,4 @@
+.husky
 node_modules
 dist/tests
 tsconfig.json
