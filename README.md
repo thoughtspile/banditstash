@@ -2,15 +2,15 @@
 
 TypeScript-first, extensible local and sessionStorage wrapper:
 
-- __Type-safe:__ no sneaky bugs if storage is corrupted.
-- __Sane defaults:__ JSON serialization, runtime validation and catching errors out of the box.
-- __Key scoping:__ prevent collisions and access values with ease.
-- __Tiny:__ 400 bytes full build, or a 187-byte core with modular features.
-- __Extensible:__ replace JSON with any serializer or use your favorite validation library.
-- __Familiar API:__ no trickery, just good old getItem / setItem with stricter types.
-- __Custom storage:__ not limited to local / sessionStorage, works in SSR.
+- **Type-safe:** no sneaky bugs if storage is corrupted.
+- **Sane defaults:** JSON serialization, runtime validation and catching errors out of the box.
+- **Key scoping:** prevent collisions and access values with ease.
+- **Tiny:** 400 bytes full build, or a 187-byte core with modular features.
+- **Extensible:** replace JSON with any serializer or use your favorite validation library.
+- **Familiar API:** no trickery, just good old getItem / setItem with stricter types.
+- **Custom storage:** not limited to local / sessionStorage, works in SSR.
 
-__Beware!__ This is an early version of the package. API might change, bugs might exist.
+**Beware!** This is an early version of the package. API might change, bugs might exist.
 
 Banditstash has a companion 400-byte type-checking library, [banditypes,](https://github.com/thoughtspile/banditypes) to make validation much more convenient without inflating your bundle.
 
@@ -32,7 +32,7 @@ Default `banditStash` factory gives you:
 - Fallback for missing storage (e.g. in SSR)
 
 ```ts
-import { banditStash, fail } from 'banditstash';
+import { banditStash, fail } from "banditstash";
 
 // Passing explicit type parameter for outer type is recommended
 const setStash = banditStash<Set<string>>({
@@ -40,7 +40,7 @@ const setStash = banditStash<Set<string>>({
   parse: (raw) => {
     // parse must convert arbitrary JSON to Set<string>...
     if (Array.isArray(raw)) {
-      return new Set(raw.filter((x): x is string => typeof x === 'string'));
+      return new Set(raw.filter((x): x is string => typeof x === "string"));
     }
     // or throw error via fail()
     fail();
@@ -50,23 +50,23 @@ const setStash = banditStash<Set<string>>({
   // If getItem can't return Set<string>
   fallback: () => new Set<string>(),
   // (optional) prefix all storage keys with "app:"
-  scope: 'app'
+  scope: "app",
 });
 
 // getItem always returns Set<string> — either from storage or fallback:
-const readMessages: Set<string> = setStash.getItem('read-ids');
-const isMessageRead = readMessages.has('id');
+const readMessages: Set<string> = setStash.getItem("read-ids");
+const isMessageRead = readMessages.has("id");
 
 // setItem accepts Set<string> and serializes it for you:
-setStash.setItem('read-ids', new Set(['123', '234']));
+setStash.setItem("read-ids", new Set(["123", "234"]));
 
 // removeItem is same as in raw storage
-setStash.removeItem('read-ids');
+setStash.removeItem("read-ids");
 
 // Bind key with .singleton() for easy access to a sinlge item:
-const readStash = setStash.singleton('read-messages');
+const readStash = setStash.singleton("read-messages");
 const ids = readStash.getItem();
-readStash.setItem(ids.add('123'));
+readStash.setItem(ids.add("123"));
 readStash.removeItem();
 ```
 
@@ -76,23 +76,23 @@ Manual object validation is quite tedious, so I suggest the companion validator 
 
 ## Custom banditStashes
 
-`banditstash` is designed to be modular and extensible via plugins. In fact, default `banditStash` is just a combination of 3 plugins — `safeGet`, `safeSet`, and `scope` — and two formatters, `json` and your custom formatter defined via `prepare` and `parse`. __Plugins__ modify getItem / setItem / removeItem behavior (like wrapping in try / catch, changing keys, or whatever.) __Formatters__ are a special case of plugins that validate and transform the stored value during getItem and setItem.
+`banditstash` is designed to be modular and extensible via plugins. In fact, default `banditStash` is just a combination of 3 plugins — `safeGet`, `safeSet`, and `scope` — and two formatters, `json` and your custom formatter defined via `prepare` and `parse`. **Plugins** modify getItem / setItem / removeItem behavior (like wrapping in try / catch, changing keys, or whatever.) **Formatters** are a special case of plugins that validate and transform the stored value during getItem and setItem.
 
 Using the base `makeBanditStash` factory with `use` and `format` methods, you can further reduce bundle size (down to 187 bytes without plugins) or modify the behavior of your stores. Plugins and formatters are chainable and _always_ return a new object.
 
 ```ts
-import { makeBanditStash, fail } from 'banditstash';
+import { makeBanditStash, fail } from "banditstash";
 
 const stringStore = makeBanditStash(localStorage).format<string>({
-  parse: data => data == null ? fail() : data
+  parse: (data) => (data == null ? fail() : data),
 });
-const readonlyStringStore = stringStore.use(stash => ({
+const readonlyStringStore = stringStore.use((stash) => ({
   getItem: stash.getItem,
   setItem: () => {
-    throw new Error('setItem on readonly store');
+    throw new Error("setItem on readonly store");
   },
   removeItem: () => {
-    throw new Error('removeItem on readonly store');
+    throw new Error("removeItem on readonly store");
   },
 }));
 ```
@@ -104,7 +104,7 @@ Stashes built using the default factory can be further enhanced with more plugin
 Banditstash is not limited to browser Storage APIs — you can provide any object with `getItem`, `setItem` and `removeItem` methods that accept string key. The values needn't be strings, and makeBanditStash will infer storage value type.
 
 ```ts
-import { makeBanditStash, fail } from 'banditstash';
+import { makeBanditStash, fail } from "banditstash";
 
 const map = new Map<string, number>();
 const memoryStorage = makeBanditStash({
@@ -113,11 +113,15 @@ const memoryStorage = makeBanditStash({
   removeItem: (key) => map.delete(key),
 });
 
-const universalStorage = makeBanditStash(typeof window === 'undefined' ? {
-  getItem: () => null,
-  setItem: (() => {}),
-  removeItem: (() => {}),
-} : window.localStorage);
+const universalStorage = makeBanditStash(
+  typeof window === "undefined"
+    ? {
+        getItem: () => null,
+        setItem: () => {},
+        removeItem: () => {},
+      }
+    : window.localStorage,
+);
 ```
 
 banditstash provides one built-in custom storage — `noStorage`. It throws error on any access, but lets you construct a banditstash instance when no storage is available (e.g. in SSR).
@@ -127,10 +131,10 @@ banditstash provides one built-in custom storage — `noStorage`. It throws erro
 If JSON does not satisfy you as a storage format, you can easily use your own serializer. Here's an example of manually serializing a number:
 
 ```ts
-import { makeBanditStash, fail } from 'banditstash';
+import { makeBanditStash, fail } from "banditstash";
 
 const numberStash = makeBanditStash(localStorage).format<number>({
-  parse: raw => {
+  parse: (raw) => {
     const num = Number(raw);
     return Number.isNaN(num) ? fail() : num;
   },
@@ -141,20 +145,21 @@ const numberStash = makeBanditStash(localStorage).format<number>({
 Any serialization library, like [arson](https://github.com/benjamn/arson) or [devalue,](https://github.com/Rich-Harris/devalue) will work:
 
 ```ts
-import { makeBanditStash, fail } from 'banditstash';
-import arson from 'arson';
+import { makeBanditStash, fail } from "banditstash";
+import arson from "arson";
 
 const dateStash = makeBanditStash(localStorage).format<Date>({
   parse: arson.parse,
-  prepare: arson.stringify
+  prepare: arson.stringify,
 });
-dateStash.setItem('registered', new Date(2022, 3, 16));
-const registeredAt: Date = dateStash.getItem('registered');
+dateStash.setItem("registered", new Date(2022, 3, 16));
+const registeredAt: Date = dateStash.getItem("registered");
 ```
+
 Default JSON serialization is implemented via `json` formatter:
 
 ```ts
-import { makeBanditStash, json } from 'banditstash';
+import { makeBanditStash, json } from "banditstash";
 
 makeBanditStash(localStorage).format(json());
 ```
@@ -164,25 +169,26 @@ makeBanditStash(localStorage).format(json());
 Manual type-checking can get tedious. Banditstash plays nicely with any validation library, as long as you `throw` (or `fail()`) on invalid values. I recommend either the 400-byte companion library [banditypes](https://github.com/thoughtspile/banditypes) or [superstruct](https://docs.superstructjs.org/) — it's small and modular, just like banditstash:
 
 ```ts
-import { makeBanditStash, fail } from 'banditstash';
-import { object, string, number, min, type Infer } from 'superstruct';
+import { makeBanditStash, fail } from "banditstash";
+import { object, string, number, min, type Infer } from "superstruct";
 
 const userSchema = object({
   name: string(),
   age: min(number(), 0),
 });
 
-const userStore = makeBanditStash(localStorage)
-  .format<Infer<typeof userSchema>>({
-    parse: raw => userSchema.create(raw),
-  });
+const userStore = makeBanditStash(localStorage).format<
+  Infer<typeof userSchema>
+>({
+  parse: (raw) => userSchema.create(raw),
+});
 
-userStore.setItem('me', { name: 'vladimir', age: 28 });
-localStorage.set('broken', JSON.stringify({ name: 'evil' }));
+userStore.setItem("me", { name: "vladimir", age: 28 });
+localStorage.set("broken", JSON.stringify({ name: "evil" }));
 try {
-  userStore.getItem('broken');
+  userStore.getItem("broken");
 } catch (err) {
-  console.log('validation failed');
+  console.log("validation failed");
 }
 ```
 
@@ -193,17 +199,16 @@ Any other validation library — [zod,](https://zod.dev/) [io-ts,](https://gcant
 `scope` plugin adds prefix to all keys to avoid key collisions. It's still useful even without TypeScript:
 
 ```ts
-import { makeBanditStash, scope } from 'banditstash';
+import { makeBanditStash, scope } from "banditstash";
 
-const appStorage = makeBanditStash(localStorage)
-  .use(scope('app'));
+const appStorage = makeBanditStash(localStorage).use(scope("app"));
 
-const userStorage = appStorage.use(scope('user'));
-const cacheStorage = appStorage.use(scope('cache'));
+const userStorage = appStorage.use(scope("user"));
+const cacheStorage = appStorage.use(scope("cache"));
 
-userStorage.getItem('avatar');
+userStorage.getItem("avatar");
 // equivalent to
-localStorage.getItem('app:user:avatar')
+localStorage.getItem("app:user:avatar");
 ```
 
 ### Runtime safety
@@ -211,7 +216,7 @@ localStorage.getItem('app:user:avatar')
 Banditstash provides two helpers for catching runtime errors: `safeGet` to handle `getItem` errors, and `safeSet` for `setItem`:
 
 ```ts
-import { makeBanditStash, safeGet, safeSet, json } from 'banditstash';
+import { makeBanditStash, safeGet, safeSet, json } from "banditstash";
 const safeStorage = makeBanditStash(window.localStorage)
   .format(json())
   .use(safeGet(() => ({})))
@@ -227,6 +232,7 @@ Note that, due to chaining, `safeGet` and `safeSet` only handle errors from plug
 Creates a default stash with JSON serialization, validation and error handling. Specifying data type explicitly is recommended.
 
 Options:
+
 - `storage`: `localStorage`, `sessionStorage`, or an object with compatible `getItem`, `setItem`, and `removeItem` methods. If `undefined` is passed, `noStorage` is used to construct the instance.
 - `parse`: a function that either converts a free-form JSON to the `Data` type, or throws an error, during `getItem`. Usually required.
 - `prepare`: a function that converts `Data` to a JSON-serializable object during `setItem`. Required for non-serializable types like `Date`, `Map`, `Set`, etc.
@@ -254,9 +260,11 @@ A helper to conveniently throw errors in `parse`:
 A custom storage that throws on every access. Can be used when `Storage` is not available to safely construct `banditstash`:
 
 ```ts
-import { makeBanditStash, noStorage } from 'banditstash';
+import { makeBanditStash, noStorage } from "banditstash";
 
-makeBanditStash(typeof window === 'undefined' ? noStorage() : window.localStorage);
+makeBanditStash(
+  typeof window === "undefined" ? noStorage() : window.localStorage,
+);
 ```
 
 Full `banditStash` falls back to `noStorage` if `storage` option is falsy.
